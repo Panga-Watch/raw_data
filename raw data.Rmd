@@ -1,0 +1,71 @@
+---
+title: "data cleaning"
+author: "BR"
+date: "17/02/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rqdatatable)
+```
+
+```{r}
+raw_df<-read_csv("kobo_response.csv") %>% 
+  select_if(function(x){!all(is.na(x))}) %>% 
+  mutate(survey_date=as.Date(survey_date, "%Y, %m, %d"))
+
+clean_df<-read_csv("master_survey_resp_copy.csv")
+View(raw_df)
+```
+
+COUNTRY & COMMUNITY correction
+
+```{r}
+#com_fix & country_fix
+old_community<-unique(raw_df$community)
+community_fix<-c("RAJ","RAJ", NA, NA,"RAJ","RAJ", "RAJ","RAJ", "MNC","MAK", "MAK", "MAK", "MAK","MAK", "MAK","MAK","MNC", "MNC","PSC", "ALT", "ALT", "WKB", "WKB")
+
+country_df<-data.frame(com_fix = c("RAJ", "MAK", "MNC", "PSC", "ALT", "WKB", "JPR"), country_fix = c("IND", "IND", "IND", "MEX", "MEX", "IND", "IND"))
+
+community_df<-data.frame(community = old_community, com_fix = community_fix) %>% 
+  left_join(country_df) %>% 
+  right_join(raw_df) %>% 
+  mutate(country_fix=as.character(country_fix))
+
+community_na<-community_df %>% 
+  filter(country_fix %in% NA) %>% 
+  mutate(country_fix = ifelse(country=="indonesia", "IND", 
+                              ifelse(country=="mexico", "MEX", country_fix))) %>% 
+  mutate(country_fix = ifelse(is.na(country_fix), "MEX", country_fix)) %>% #correction made based on survey dates
+  separate(survey_date, c("year", "month", "date"), "-", extra = "merge", convert = TRUE) %>% 
+  mutate(com_fix = ifelse(date>10, "ALT", com_fix)) %>% 
+  mutate(com_fix=ifelse(country_fix=="IND", "RAJ",
+                        ifelse(is.na(com_fix), "PSC", com_fix))) %>% 
+  select(start, com_fix, country_fix)
+
+location_df<-natural_join(community_df, community_na, by = "start",jointype = "FULL") %>% 
+  mutate(country=ifelse(country_fix=="1", "IND",
+                        ifelse(country_fix=="2", "MEX", country_fix))) %>% 
+  mutate(community=com_fix) %>% 
+  select(start, community, country)
+                        
+
+survey<-raw_df %>% 
+  select(-community, -country) %>% 
+  left_join(location_df) %>% 
+  filter(survey_type %in% c("data", NA)) #remove the re-do data marked as "training". to be combined back later
+```
+
+```{r}
+training<-survey %>% 
+  filter(survey_type=="training")
+```
+
+```{r}
+gear_df<-survey %>% 
+  select(start, end, country, community, contains("gear")) %>% 
+  select(-contains("restriction"))
+```
+
