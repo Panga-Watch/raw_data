@@ -32,6 +32,7 @@ survey<-raw_df %>%
   left_join(survey_id, by = "start") 
 
 names(survey) <- gsub(x = names(survey), pattern = "^_", replacement = "q")  
+names(survey) <- gsub(x = names(survey), pattern = "/", replacement = "_") 
 ```
 
 1.COUNTRY & 2. COMMUNITY 
@@ -73,28 +74,332 @@ survey<-survey %>%
 
 
 4. In the last 12 months, what fishing gear have you used? (Select all that apply)
+⬜	Hand Line
+⬜	Spear
+⬜	Traps
+⬜	Gill Net
+⬜	Mobile Net (e.g., trawl, purse seine, beach seine)
+⬜	Stationary Line (e.g. long line)
+⬜	Other  ___________________________
 
+*Adding Buceo
 ```{r}
+#gear (13:21) & fishing_gear (169:176)
 gear_df<-survey %>% 
-  select(start, end, country, community, survey_id, contains("gear")) %>% 
-  select(-contains("restriction"))
+  select(start, country, community, survey_id, c(14:21,170:177)) %>%
+  mutate(other_gear = ifelse(is.na(other_4), gear_other, other_4)) %>% 
+  mutate(gear_handline = ifelse(is.na(gear_hand_line), fishing_gear_hand_line, gear_hand_line), 
+         gear_spear = ifelse(is.na(gear_spear), fishing_gear_spear, gear_spear),
+         gear_traps = ifelse(is.na(gear_traps), fishing_gear_traps, gear_traps),
+         gear_gillnet = ifelse(is.na(gear_gill_net), fishing_gear_gill_net, gear_gill_net),
+         gear_mobilenet = ifelse(is.na(gear_mobile_net), fishing_gear_mobile_net, gear_mobile_net),
+         gear_statline = ifelse(is.na(gear_stationary_line), fishing_gear_stationary_line, gear_stationary_line),
+         gear_other = ifelse(is.na(gear_other_gear), fishing_gear_other, gear_other_gear)) %>%
+  mutate(gear_buceo = ifelse(grepl("buceo", other_gear, ignore.case=TRUE), 1, 0)) %>% 
+  mutate(gear_gillnet = ifelse(grepl("gillnet", other_gear, ignore.case = TRUE), 1 , gear_gillnet)) %>% 
+  select(c(1:4), gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_other, gear_buceo, other_gear) 
+
 ```
+
 
 5. For fishing purposes, do you own a boat, share a boat, or rent a boat from others, or do not use a boat?
 6. For your primary fishing vessel, please describe the boat in the following aspects:
 
+
 ```{r}
 vessel_df<-survey %>%
   mutate(boat_length = ifelse(is.na(boat_length), boat_length_m, boat_length)) %>% 
-  select(start, end, country, community, survey_id, contains("boat"), -boat_length_m)
+  select(start, end, country, community, survey_id, contains("boat"), -boat_length_m) %>% 
+  mutate(boat_material =  ifelse(grepl("ka", boat_material, ignore.case=TRUE), "wood",
+                                 ifelse(grepl("fib", boat_material, ignore.case = TRUE), "fiberglass", boat_material)))
 ```
 
-7. What types of technology that you use at least once a week? (Select all that apply)
-```{r}
-tech_df<-survey %>% 
-  select(start, end, country, community, survey_id, contains("tech"))
 
-str(tech_df)
+
+7. What types of technology that you use at least once a week? (Select all that apply)
+⬜	Smart-phone with Internet connection
+⬜	Google Maps or other GPS apps
+⬜	Twitter, Facebook, Instagram, or other social media
+⬜	Other  ___________________________
+⬜	None
+
+
+```{r}
+tech_df<- survey %>% 
+  select(start, end, country, community, survey_id, c(28:34,179:186))
+
+```
+
+8. 8. Which of these  types of technology do  you use/  have used at some point for your fishing activity (Select all that apply)
+⬜	VHF radio
+⬜	Fish Finder
+⬜	Surveillance camera
+⬜	Catch and data collection app
+⬜	Vessel tracking technology
+⬜	GPS
+⬜	Other  ___________________________
+⬜	None
+
+```{r}
+fishtech_df<- survey %>% 
+  select(start, end, country, community, survey_id, c(35:49,187:196)) %>% 
+  select(-fish_tech_socialmedia) %>%  #coding 
+  #mutate(fish_tech = ifelse(is.na(fish_tech), fish_tech_use, fish_tech)) %>% 
+  mutate(other_fishtech = ifelse(is.na(fish_tech_other), other_8, fish_tech_other)) %>% #other 1 of 2
+  mutate(other_fishtech = ifelse(is.na(other_fishtech), other_08, other_fishtech)) %>%  #other 2/2
+  mutate(fishtech_none = ifelse(is.na(fish_tech_no_fish_tech), fish_tech_use_none, fish_tech_no_fish_tech)) %>% #none
+  mutate(fishtech_vhf = ifelse(is.na(fish_tech_vhf), fish_tech_use_vhf, 
+                               ifelse(grepl("Radio", other_fishtech, ignore.case=TRUE), 1, fish_tech_vhf))) %>% #VHF radio
+  mutate(fishtech_fishfiner = ifelse(is.na(fish_tech_fishfinder), fish_tech_use_fishfinder, fish_tech_fishfinder)) %>% #Fish Finder
+  mutate(fishtech_survcam = ifelse(is.na(fish_tech_survcam), fish_tech_use_survcam, fish_tech_survcam)) %>% #Surveillance camera
+  mutate(fishtech_catchapp = ifelse(is.na(fish_tech_catchapp), fish_tech_use_catchapp, fish_tech_catchapp)) %>% #Catch and data collection app
+  mutate(fishtech_vms = ifelse(is.na(fish_tech_vesseltrack), fish_tech_use_vesseltrack, 
+                               ifelse(grepl("pds", other_fishtech, ignore.case=TRUE), 1, fish_tech_vesseltrack))) %>% #vessel tracking technology
+  mutate(fishtech_gps = ifelse(grepl("GPS", other_fishtech, ignore.case=TRUE), 1, 
+                               ifelse(fishtech_none == 1, 0, fish_tech_gps))) %>% #GPS 
+  mutate(fishtech_other = ifelse(is.na(fish_tech_other_fish_tech), fish_tech_use_other, fish_tech_other_fish_tech)) %>% #Other binary
+
+  select(start, end, country, community, survey_id, fishtech_vhf, fishtech_fishfiner, fishtech_survcam, fishtech_catchapp, fishtech_gps, fishtech_vms, fishtech_other,fishtech_none, other_fishtech) %>%
+  mutate(row_sum = apply(is.na(.), 1, sum)) %>% 
+  mutate_if(is.numeric, funs(ifelse(is.na(.) & row_sum <9 , 0, .))) %>% 
+  select(-row_sum)
+```
+
+9. What type of tracking technology did you use on your vessel?
+
+*text*
+
+10. Please list some positive aspects of this technology
+
+*text*
+
+11. Please list some negative aspects of this technology
+
+*text*
+
+```{r}
+vms_text_df<- survey %>% 
+  select(start, end, country, community, survey_id, c(50:53,197:200))
+```
+
+12. You have to install and use one or the other tracking package for a year. Which would you be more likely to install and use consistently on every fishing trip?
+◯  	Package One
+◯ 	Package Two
+13. Would you prefer the package you chose or no tracking package at all?
+◯ 	Package Chosen
+◯ 	No Package
+
+14. wtp
+15. wtr
+
+```{r}
+ce_df<- survey %>% 
+  select(start, end, country, community, survey_id, c(54:64)) %>% 
+  mutate(choice = ifelse(is.na(choice), choice_001, choice)) %>% 
+  select(-choice_001)
+```
+
+16. Please mention any negatives that this technology might bring to you.
+
+17. Please mention any other positives that this technology might bring to you.
+
+19. Do you think you and your community would adopt this technology? Why or Why Not?
+```{r}
+vms_goodbad_df<- survey %>% 
+  select(start, end, country, community, survey_id, c(65:66, 77, 220)) %>% 
+  mutate(vms_adoption_text = ifelse(is.na(vms_adoption_text), tracking_adoption, vms_adoption_text)) %>% 
+  select(-tracking_adoption)
+```
+
+18. Please choose 3 benefits you want from the tracking device, if it is installed in your boat.  (Select three)
+⬜	Data to help obtain a sustainable seafood certification
+⬜	On-board Internet access
+⬜	On-board electrical power for charging cell phones and other electronics
+⬜	Text messaging services
+⬜	Detailed tracking information for your vessel (e.g., drop pin in specific location)
+⬜	Opportunities to acquire new tools and technical capacity (e.g. workshops for computer use)
+⬜	Reduce illegal, unreported, and unregulated fishing in your fishing area
+⬜	Increase in the monitoring capacity of the fishing association
+⬜	Full data reports to show compliance with fishing authorities (e.g. monthly reports with fishing activity information, paired with catch data)
+
+
+```{r}
+ce_followup_df<-survey %>% 
+  select(start, country, community, survey_id, c(67:76, 201:219)) 
+  
+names(ce_followup_df) <- gsub(x = names(ce_followup_df), pattern = "vms_design_vms_design_", replacement = "vms_design_")
+names(ce_followup_df) <- gsub(x = names(ce_followup_df), pattern = "q1st_choice_", replacement = "choice_")
+
+ce_fu_df <- ce_followup_df %>% 
+  mutate(vms_design_a = ifelse(is.na(vms_design_a), choice_a, vms_design_a),
+         vms_design_b = ifelse(is.na(vms_design_b), choice_b, vms_design_b),
+         vms_design_c = ifelse(is.na(vms_design_c), choice_c, vms_design_c),
+         vms_design_d = ifelse(is.na(vms_design_d), choice_d, vms_design_d),
+         vms_design_e = ifelse(is.na(vms_design_e), choice_e, vms_design_e),
+         vms_design_f = ifelse(is.na(vms_design_f), choice_f, vms_design_f),
+         vms_design_g = ifelse(is.na(vms_design_g), choice_g, vms_design_g),
+         vms_design_h = ifelse(is.na(vms_design_h), choice_h, vms_design_h),
+         vms_design_i = ifelse(is.na(vms_design_i), choice_i, vms_design_i)) %>%
+  mutate(vms_design_a = ifelse(is.na(vms_design_a), choice_item_to_be_ran, vms_design_a),
+         vms_design_b = ifelse(is.na(vms_design_b), choice_item_to_be_ran_1, vms_design_b),
+         vms_design_c = ifelse(is.na(vms_design_c), choice_onboard_electr, vms_design_c),
+         vms_design_d = ifelse(is.na(vms_design_d), choice_text_messaging, vms_design_d),
+         vms_design_e = ifelse(is.na(vms_design_e), choice_detailed_track, vms_design_e),
+         vms_design_f = ifelse(is.na(vms_design_f), choice_opportunities_, vms_design_f),
+         vms_design_g = ifelse(is.na(vms_design_g), choice_reduce_illegal, vms_design_g),
+         vms_design_h = ifelse(is.na(vms_design_h), choice_increase_in_th, vms_design_h),
+         vms_design_i = ifelse(is.na(vms_design_i), choice_full_data_repo, vms_design_i)) %>% 
+  mutate(vms_design = ifelse(is.na(vms_design), q1st_choice, vms_design)) %>% 
+  select(c(1:14))
+```
+
+
+20. Combining all seasons, what are your top three targeted fisheries?
+1.
+2.
+3.
+
+```{r}
+targetsp_df<-survey %>% 
+  select(start, country, community, survey_id, c(78:80, 221:223)) %>% 
+  mutate(target_species_one = ifelse(is.na(targetone), target_species_one, targetone),
+         target_species_two = ifelse(is.na(targettwo), target_species_two, targettwo),
+         target_species_three = ifelse(is.na(targetthree), target_species_three, targetthree)) %>% 
+  select(c(1:7))
+```
+
+21. What percent of the total catch (out of 100%) goes to...
+a. Own/household consumption
+b. Shared to neighboring household
+c. Traded in local market
+d. Export
+e. Other _______________________
+
+```{r}
+percent_catch<-survey %>% 
+  select(start, country, community, survey_id, c(78:80, 221:223)) 
+```
+
+22. Are you part of a fishing organization?
+◯	Yes
+◯	No
+If you selected Yes in Question 22, please answer Question 23-25
+23. What type of organization?
+◯	a. Cooperative 
+◯	b. Union 
+◯	c. Customary Organization (e.g. indigenous community) 
+◯	d. Other _______________________
+24. What role do you have in the organization?
+◯	a. Apprentice
+◯	b. Partner
+◯	c. Director
+◯	d. Other _______________________
+25. How many members are in your fishing organization? 
+
+```{r}
+organization<-survey %>% 
+  select(start, country, community, survey_id,
+         c(87,230), #part of fish org
+         c(88,89,231,232), #type of org
+         c(90, 233, 234), #role in org
+         c(91, 235)) # number of members 
+```
+26. Who is allowed to fish for your #1 targeted fishery? (Select all that apply)
+◯	a. Members of your fishing organization/ community only
+◯	b. Members from you and neighboring fishing organization/ communities
+◯	c. Anyone with a fishing permit
+◯	d. There are no restrictions to access
+◯	e. Other _______________________
+27. What regulations exist for your #1 targeted fishery? (Select all that apply)
+⬜	a. Gear Restrictions
+⬜	b. Size Restrictions
+⬜	c. Seasonal Restrictions
+⬜	d. Spatial Restrictions
+⬜	e. Quotas
+⬜	f. Other  _______________________
+⬜	g. None
+28. Who is responsible for enforcement in your community? (Select all that apply)
+⬜	a. Community Members
+⬜	b. Village customary leader
+⬜	c. Village Government
+⬜	d. Provincial Government
+⬜	e. National Government
+⬜	f. No Enforcement
+⬜	g. Other _______________________
+29. On average, how often are these fishing regulations enforced?
+◯	a. Every week
+◯	b. Once a month
+◯	c. A few times per year
+◯	d. Once a year
+◯	e. Never
+30. How severe is the punishment when a person gets caught violating the fishing regulations?
+◯	a. No Punishment
+◯	b. Weak
+◯	c. Moderate
+◯	d. Strong
+◯	e. Severe
+31. Are there any closed areas in your fishing area?
+◯	Yes
+◯	No
+```{r}
+rules<-survey %>% 
+  select(start, country, community, survey_id,
+         c(92,93,236), #access to fishery
+         c(94:102, 237:246), #regulations
+         c(103:111, 247:255), #enforcement body
+         c(112,113,256,257), #enforcement frequency 
+         c(114,258), #punishment
+         c(125, 259),) #mpa 
+
+```
+32. What do you think are the biggest problems your fishery faces?
+1. 
+2.
+3.
+33. How do you think the problems you mentioned can be solved?
+1. 
+2.
+3.
+34. Please rank the following problems. 
+		a. Trash polluting the ocean	
+		b. Illegal Fishing	
+		c. Extreme Weather	
+		d. Corruption of fishing authorities
+35. In the last few years, the current fish catch has…		
+◯	a. Declined a lot		
+◯	b. Declined slightly		
+◯	c. Stayed the same		
+◯	d. Improved slightly		
+◯	e. Improved a lot		
+
+```{r}
+problems<-survey %>% 
+  select(start, country, community, survey_id, 
+         c(116:121, 260:265), #problem & Solution 
+         c(122:125, 266:269), #rank
+         c(126, 270, 271)) %>% #catch trends
+  mutate(fishery_problem_one = ifelse(is.na(problem_one), fishery_problem_one, problem_one),
+         fishery_problem_two = ifelse(is.na(problem_two), fishery_problem_two, problem_two),
+         fishery_problem_three = ifelse(is.na(problem_three), fishery_problem_three, problem_three)) %>% 
+  mutate(rank_one = ifelse(is.na(rank_one), q1st_choice_001, rank_one),
+         rank_two = ifelse(is.na(rank_two), q2nd_choice, rank_two),
+         rank_three = ifelse(is.na(rank_three), q3rd_choice, rank_three),
+         rank_four = ifelse(is.na(rank_four), q4th_choice, rank_four)) %>% 
+  mutate(catch_trends = ifelse(is.na(catch_trends), catch_trends_35, catch_trends), 
+         catch_trends = ifelse(is.na(catch_trends), q35p, catch_trends)) %>% 
+  select(c(1:4), starts_with("fishery_problem"), starts_with("rank_"), catch_trends)
+```
+
+39. What is your age?
+
+40. How many years have you been fishing?
+
+```{r}
+years<-survey %>% 
+  select(start, country, community, survey_id, c(151, 298, 152, 299)) %>% 
+  mutate(age = ifelse(is.na(age), q39d, age),
+         years_fishing = ifelse(is.na(years_fishing), q40d, years_fishing)) %>% 
+  select(-q39d, -q40d)
 ```
 
 41. What is your level of education? (Please choose one)
@@ -103,9 +408,20 @@ str(tech_df)
 edu_col<- c(153:154, 300:307)
 
 education_df<-survey %>% 
-  select(start, end, country, community, survey_id, c(153:154, 300:307)) %>% 
+  select(start, country, community, survey_id, c(153:154, 300:307)) %>% 
   mutate(education = ifelse(is.na(education), q41d, education)) %>% 
   mutate(education_other = ifelse(is.na(education_other), qPlease_specify_other_002, education_other)) %>% 
   select(-starts_with("q"))
+```
+42. What is your average monthly income? (INR/MEX)
+
+43. What percent (out of 100%) of your annual income comes from fishing?
+
+44. What percent (out of 100%) of your income is spent on fishing related expenses?
+
+
+```{r}
+income<-survey %>% 
+  select(start, country, community, survey_id, c(308:312)) 
 ```
 
