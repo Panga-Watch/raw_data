@@ -5,6 +5,7 @@ date: "17/02/2020"
 output: html_document
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -16,11 +17,24 @@ raw_df<-read_csv("kobo_response.csv") %>%
   select_if(function(x){!all(is.na(x))}) %>% 
   mutate(survey_date=as.Date(survey_date, "%Y, %m, %d"))
 
-clean_df<-read_csv("master_survey_resp_copy.csv")
-View(raw_df)
+clean_df<-read_csv("master_survey_resp_copy.csv") %>% 
+  select(start, survey_id)
 ```
 
-COUNTRY & COMMUNITY correction
+Reassigning survey_id
+```{r}
+survey_id<- clean_df %>% 
+  select(start, survey_id)
+
+survey<-raw_df %>% 
+  filter(survey_type %in% c("data", NA)) %>%  #remove the re-do data marked as "training". to be combined back later
+  select(-survey_id) %>% 
+  left_join(survey_id, by = "start") 
+
+names(survey) <- gsub(x = names(survey), pattern = "^_", replacement = "q")  
+```
+
+1.COUNTRY & 2. COMMUNITY 
 
 ```{r}
 #com_fix & country_fix
@@ -50,22 +64,48 @@ location_df<-natural_join(community_df, community_na, by = "start",jointype = "F
                         ifelse(country_fix=="2", "MEX", country_fix))) %>% 
   mutate(community=com_fix) %>% 
   select(start, community, country)
-                        
 
-survey<-raw_df %>% 
+survey<-survey %>%
   select(-community, -country) %>% 
   left_join(location_df) %>% 
-  filter(survey_type %in% c("data", NA)) #remove the re-do data marked as "training". to be combined back later
+  subset(select=c(1:5,323:325, 6:322))
 ```
 
-```{r}
-training<-survey %>% 
-  filter(survey_type=="training")
-```
+
+4. In the last 12 months, what fishing gear have you used? (Select all that apply)
 
 ```{r}
 gear_df<-survey %>% 
-  select(start, end, country, community, contains("gear")) %>% 
+  select(start, end, country, community, survey_id, contains("gear")) %>% 
   select(-contains("restriction"))
+```
+
+5. For fishing purposes, do you own a boat, share a boat, or rent a boat from others, or do not use a boat?
+6. For your primary fishing vessel, please describe the boat in the following aspects:
+
+```{r}
+vessel_df<-survey %>%
+  mutate(boat_length = ifelse(is.na(boat_length), boat_length_m, boat_length)) %>% 
+  select(start, end, country, community, survey_id, contains("boat"), -boat_length_m)
+```
+
+7. What types of technology that you use at least once a week? (Select all that apply)
+```{r}
+tech_df<-survey %>% 
+  select(start, end, country, community, survey_id, contains("tech"))
+
+str(tech_df)
+```
+
+41. What is your level of education? (Please choose one)
+
+```{r}
+edu_col<- c(153:154, 300:307)
+
+education_df<-survey %>% 
+  select(start, end, country, community, survey_id, c(153:154, 300:307)) %>% 
+  mutate(education = ifelse(is.na(education), q41d, education)) %>% 
+  mutate(education_other = ifelse(is.na(education_other), qPlease_specify_other_002, education_other)) %>% 
+  select(-starts_with("q"))
 ```
 
