@@ -10,6 +10,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(rqdatatable)
+library(gtools)
 ```
 
 ```{r}
@@ -20,28 +21,28 @@ raw_df<-read_csv("kobo_response.csv") %>%
 names(raw_df) <- gsub(x = names(raw_df), pattern = "^_", replacement = "q")  
 names(raw_df) <- gsub(x = names(raw_df), pattern = "/", replacement = "_") 
 
-clean_df<-read_csv("master_survey_resp_copy.csv") %>% 
-  select(start, survey_id)
+master_id<-read_csv("master_survey_resp_copy.csv") %>% 
+  select(start, survey_id, country, community) %>% 
+  mutate(new_id = survey_id) %>% 
+  select(-survey_id) %>% 
+  mutate(community = ifelse(community=="TTN", "ALT", community))
 
-og<-read_csv("master_survey_resp_copy.csv") %>% 
-  filter(community == "PSC")
+```
+
+
+Last surveys from ind
+```{r}
+last_ind<-read_csv("Tracking Tech Survey (IND).csv") %>%
+  select(-community, -country) %>% 
+  left_join(master_id) %>% 
+  mutate(survey_id = new_id) %>% 
+  mutate(community = ifelse(survey_id > 8000, "JPR", "WKB"), 
+         country = "IND")
+
+#names(last_ind)
 ```
 
 Reassigning survey_id
-```{r}
-survey_id<- clean_df %>% 
-  select(start, survey_id) %>% 
-  mutate(new_id = survey_id) %>% 
-  select(-survey_id)
-
-survey<-raw_df %>% 
-#  filter(survey_type %in% c("data", NA)) %>%  #remove the re-do data marked as "training". to be combined back later
-  #select(survey_id) %>% 
-  left_join(survey_id, by = "start")  
-#  mutate(survey_id = ifelse(is.na(survey_id.y), survey_id.x, survey_id.y)) %>% 
-#  filter(!is.na(survey_id)) %>% 
-#  select(326, 327, c(1:325))
-```
 
 1.COUNTRY & 2. COMMUNITY 
 
@@ -74,26 +75,90 @@ location_df<-natural_join(community_df, community_na, by = "start",jointype = "F
   mutate(community=com_fix) %>% 
   select(start, community, country)
 
-survey<-raw_df %>%
+survey_pre_psc<-raw_df %>%
   select(-community, -country) %>% 
   left_join(location_df) %>% 
   subset(select=c(1:5,324:325, 6:323))
 ```
-making corrections for PSC data
-```{r}
-psc_correction<- survey %>% 
-  filter(survey_type=="training") %>% 
-  select(c(1:10), c("choice":"wtr_4")) %>% 
-  mutate(survey_id = as.numeric(survey_id))
 
-psc_correct<-survey %>% 
-  filter(community == "PSC",
-         survey_type %in% c("data", NA)) %>% 
-  left_join(survey_id, by = "start") %>% 
-  mutate(survey_id = new_id) %>% 
-  left_join(psc_correction, by = "survey_id")
+Intro questions 
+"start"
+"end"
+"survey_type"
+"survey_id"
+"survey_date"
+"survey_time"
+"survey_version"
+"interviewer"
+"country"
+"community"
+"sex"
+
+```{r}
+intro<-survey %>% 
+  select("start",
+          "end",
+          "survey_type",
+          "survey_id",
+          "survey_date",
+          "survey_time",
+          "survey_version",
+          "interviewer",
+          "country",
+          "community",
+          "sex")
 ```
 
+
+making corrections for PSC data
+There should be 46 surveys 
+```{r}
+psc<-survey_pre_psc %>% 
+  rename(old_id = survey_id) %>% #renaming to avoid problems when joining 
+  left_join(master_id) %>% # joining with final assigned survey id's
+  filter(community == "PSC")
+
+psc_old<-psc %>% #filtering the incorrect portions 
+  select(-c(choice_001:wtr_4), - old_id) %>% 
+  rename(survey_id = new_id) 
+
+#All correct, corrections
+psc_fix<- psc  %>% 
+  filter(is.na(new_id)) %>% #filter for the surveys that are the corrections 
+  select(old_id, survey_version, interviewer, c(choice_001:wtr_4)) %>% 
+  rename(survey_id = old_id, fisher = interviewer) %>% 
+  mutate(survey_id = as.numeric(survey_id)) %>%
+  filter(!is.na(survey_id)) %>% 
+  left_join(psc_old) %>% 
+  distinct(survey_id, .keep_all = TRUE) %>% 
+  mutate(interviewer = fisher) %>% 
+  select(-fisher) 
+
+psc_good<-psc %>%
+  filter(is.na(old_id)) %>% 
+  select(start) %>% 
+  left_join(psc_fix, by = "start") %>% 
+  filter(is.na(survey_id)) %>%
+  select(start) %>%
+  left_join(raw_df) %>%
+  select(-survey_id, -community, -country) %>% 
+  left_join(master_id) %>% 
+  rename(survey_id = new_id)
+
+psc_final<-rbind(psc_fix, psc_good) 
+```
+
+```{r}
+survey<-survey_pre_psc %>% 
+  filter(community!="PSC") %>%
+  select(-survey_id) %>% 
+  left_join(master_id) %>% 
+  rename(survey_id = new_id) %>% 
+  rbind(psc_final) %>% 
+  subset(select=c(325, 1:324)) %>% 
+  filter(!is.na(country)) %>% 
+  mutate(survey_id = ifelse(is.na(survey_id) & community == "ALT", 6042, survey_id)) #forgot to assign the last one
+```
 
 4. In the last 12 months, what fishing gear have you used? (Select all that apply)
 ⬜	Hand Line
@@ -119,8 +184,7 @@ gear_df<-survey %>%
          gear_other = ifelse(is.na(gear_other_gear), fishing_gear_other, gear_other_gear)) %>%
   mutate(gear_buceo = ifelse(grepl("buceo", other_gear, ignore.case=TRUE), 1, 0)) %>% 
   mutate(gear_gillnet = ifelse(grepl("gillnet", other_gear, ignore.case = TRUE), 1 , gear_gillnet)) %>% 
-  select(c(1:4), gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_other, gear_buceo, other_gear) 
-
+  select(survey_id, gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_other, gear_buceo, other_gear) 
 ```
 
 
@@ -131,7 +195,7 @@ gear_df<-survey %>%
 ```{r}
 vessel_df<-survey %>%
   mutate(boat_length = ifelse(is.na(boat_length), boat_length_m, boat_length)) %>% 
-  select(start, end, country, community, survey_id, contains("boat"), -boat_length_m) %>% 
+  select(survey_id, contains("boat"), -boat_length_m) %>% 
   mutate(boat_material =  ifelse(grepl("ka", boat_material, ignore.case=TRUE), "wood",
                                  ifelse(grepl("fib", boat_material, ignore.case = TRUE), "fiberglass", boat_material)))
 ```
@@ -148,8 +212,15 @@ vessel_df<-survey %>%
 
 ```{r}
 tech_df<- survey %>% 
-  select(start, end, country, community, survey_id, c(28:34,179:186))
-
+  select(survey_id, c(29:34,180:186)) %>% 
+  mutate(other_tech = ifelse(is.na(tech_other), Please_specify_other_001, tech_other),
+         other_tech = ifelse(is.na(tech_other), other_07, tech_other), 
+         tech_smartphone = ifelse(is.na(tech_smartphone), tech_use_smartphone, tech_smartphone),
+         tech_maps = ifelse(is.na(tech_maps), tech_use_maps, tech_maps),
+         tech_sm = ifelse(is.na(tech_socialmedia), tech_use_socialmedia, tech_socialmedia),
+         tech_other = ifelse(is.na(tech_other_tech), tech_use_other, tech_other), 
+         tech_none = ifelse(is.na(tech_no_tech), tech_use_none, tech_no_tech)) %>% 
+  select(survey_id, tech_smartphone, tech_maps, tech_sm, tech_other, tech_none, other_tech)
 ```
 
 8. 8. Which of these  types of technology do  you use/  have used at some point for your fishing activity (Select all that apply)
@@ -164,7 +235,7 @@ tech_df<- survey %>%
 
 ```{r}
 fishtech_df<- survey %>% 
-  select(start, end, country, community, survey_id, c(35:49,187:196)) %>% 
+  select(survey_id, c(35:49,187:196)) %>% 
   select(-fish_tech_socialmedia) %>%  #coding 
   #mutate(fish_tech = ifelse(is.na(fish_tech), fish_tech_use, fish_tech)) %>% 
   mutate(other_fishtech = ifelse(is.na(fish_tech_other), other_8, fish_tech_other)) %>% #other 1 of 2
@@ -181,27 +252,27 @@ fishtech_df<- survey %>%
                                ifelse(fishtech_none == 1, 0, fish_tech_gps))) %>% #GPS 
   mutate(fishtech_other = ifelse(is.na(fish_tech_other_fish_tech), fish_tech_use_other, fish_tech_other_fish_tech)) %>% #Other binary
 
-  select(start, end, country, community, survey_id, fishtech_vhf, fishtech_fishfiner, fishtech_survcam, fishtech_catchapp, fishtech_gps, fishtech_vms, fishtech_other,fishtech_none, other_fishtech) %>%
+  select(survey_id, fishtech_vhf, fishtech_fishfiner, fishtech_survcam, fishtech_catchapp, fishtech_gps, fishtech_vms, fishtech_other,fishtech_none, other_fishtech) %>%
   mutate(row_sum = apply(is.na(.), 1, sum)) %>% 
   mutate_if(is.numeric, funs(ifelse(is.na(.) & row_sum <9 , 0, .))) %>% 
   select(-row_sum)
 ```
 
 9. What type of tracking technology did you use on your vessel?
-
-*text*
-
 10. Please list some positive aspects of this technology
-
-*text*
-
 11. Please list some negative aspects of this technology
-
 *text*
 
 ```{r}
 vms_text_df<- survey %>% 
-  select(start, end, country, community, survey_id, c(50:53,197:200))
+  select(survey_id, c(50:53,197:200)) %>% 
+  mutate(positive_vms1 = ifelse(is.na(positive_tracking_tech_one), positive_one, positive_tracking_tech_one),
+         positive_vms2 = ifelse(is.na(positive_tracking_tech_two), positive_two, positive_tracking_tech_two),
+         negative_vms1 = ifelse(is.na(negative_tracking_tech_one), negative_one, negative_tracking_tech_one),
+         negative_vms2 = negative_two) %>% 
+  select(survey_id, positive_vms1, positive_vms2, negative_vms1, negative_vms2)
+
+
 ```
 
 12. You have to install and use one or the other tracking package for a year. Which would you be more likely to install and use consistently on every fishing trip?
@@ -216,7 +287,7 @@ vms_text_df<- survey %>%
 
 ```{r}
 ce_df<- survey %>% 
-  select(start, end, country, community, survey_id, c(54:64)) %>% 
+  select(survey_id, c(54:64)) %>% 
   mutate(choice = ifelse(is.na(choice), choice_001, choice)) %>% 
   select(-choice_001)
 ```
@@ -228,7 +299,7 @@ ce_df<- survey %>%
 19. Do you think you and your community would adopt this technology? Why or Why Not?
 ```{r}
 vms_goodbad_df<- survey %>% 
-  select(start, end, country, community, survey_id, c(65:66, 77, 220)) %>% 
+  select(survey_id, c(65:66, 77, 220)) %>% 
   mutate(vms_adoption_text = ifelse(is.na(vms_adoption_text), tracking_adoption, vms_adoption_text)) %>% 
   select(-tracking_adoption)
 ```
@@ -247,12 +318,12 @@ vms_goodbad_df<- survey %>%
 
 ```{r}
 ce_followup_df<-survey %>% 
-  select(start, country, community, survey_id, c(67:76, 201:219)) 
+  select(survey_id, c(67:76, 201:219)) 
   
 names(ce_followup_df) <- gsub(x = names(ce_followup_df), pattern = "vms_design_vms_design_", replacement = "vms_design_")
 names(ce_followup_df) <- gsub(x = names(ce_followup_df), pattern = "q1st_choice_", replacement = "choice_")
 
-ce_fu_df <- ce_followup_df %>% 
+vms_design_df <- ce_followup_df %>% 
   mutate(vms_design_a = ifelse(is.na(vms_design_a), choice_a, vms_design_a),
          vms_design_b = ifelse(is.na(vms_design_b), choice_b, vms_design_b),
          vms_design_c = ifelse(is.na(vms_design_c), choice_c, vms_design_c),
@@ -272,7 +343,7 @@ ce_fu_df <- ce_followup_df %>%
          vms_design_h = ifelse(is.na(vms_design_h), choice_increase_in_th, vms_design_h),
          vms_design_i = ifelse(is.na(vms_design_i), choice_full_data_repo, vms_design_i)) %>% 
   mutate(vms_design = ifelse(is.na(vms_design), q1st_choice, vms_design)) %>% 
-  select(c(1:14))
+  select(survey_id, vms_design_a:vms_design_i)
 ```
 
 
@@ -283,11 +354,10 @@ ce_fu_df <- ce_followup_df %>%
 
 ```{r}
 targetsp_df<-survey %>% 
-  select(start, country, community, survey_id, c(78:80, 221:223)) %>% 
   mutate(target_species_one = ifelse(is.na(targetone), target_species_one, targetone),
          target_species_two = ifelse(is.na(targettwo), target_species_two, targettwo),
          target_species_three = ifelse(is.na(targetthree), target_species_three, targetthree)) %>% 
-  select(c(1:7))
+  select(survey_id, target_species_one, target_species_two, target_species_three)
 ```
 
 21. What percent of the total catch (out of 100%) goes to...
@@ -298,8 +368,8 @@ d. Export
 e. Other _______________________
 
 ```{r}
-percent_catch<-survey %>% 
-  select(start, country, community, survey_id, c(78:80, 221:223)) 
+pct_catch<-survey %>% 
+  select(survey_id, c(78:80, 221:223)) 
 ```
 
 22. Are you part of a fishing organization?
@@ -320,12 +390,14 @@ If you selected Yes in Question 22, please answer Question 23-25
 
 ```{r}
 organization<-survey %>% 
-  select(start, country, community, survey_id,
+  select(survey_id,
          c(87,230), #part of fish org
          c(88,89,231,232), #type of org
          c(90, 233, 234), #role in org
          c(91, 235)) # number of members 
 ```
+
+
 26. Who is allowed to fish for your #1 targeted fishery? (Select all that apply)
 ◯	a. Members of your fishing organization/ community only
 ◯	b. Members from you and neighboring fishing organization/ communities
@@ -373,6 +445,8 @@ rules<-survey %>%
          c(114,258), #punishment
          c(125, 259),) #mpa 
 ```
+
+
 32. What do you think are the biggest problems your fishery faces?
 1. 
 2.
@@ -395,7 +469,7 @@ rules<-survey %>%
 
 ```{r}
 problems<-survey %>% 
-  select(start, country, community, survey_id, 
+  select(survey_id, 
          c(116:121, 260:265), #problem & Solution 
          c(122:125, 266:269), #rank
          c(126, 270, 271)) %>% #catch trends
@@ -408,7 +482,7 @@ problems<-survey %>%
          rank_four = ifelse(is.na(rank_four), q4th_choice, rank_four)) %>% 
   mutate(catch_trends = ifelse(is.na(catch_trends), catch_trends_35, catch_trends), 
          catch_trends = ifelse(is.na(catch_trends), q35p, catch_trends)) %>% 
-  select(c(1:4), starts_with("fishery_problem"), starts_with("rank_"), catch_trends)
+  select(survey_id, starts_with("fishery_problem"), starts_with("rank_"), catch_trends)
 ```
 
 39. What is your age?
@@ -417,7 +491,7 @@ problems<-survey %>%
 
 ```{r}
 years<-survey %>% 
-  select(start, country, community, survey_id, c(151, 298, 152, 299)) %>% 
+  select(survey_id, c(151, 298, 152, 299)) %>% 
   mutate(age = ifelse(is.na(age), q39d, age),
          years_fishing = ifelse(is.na(years_fishing), q40d, years_fishing)) %>% 
   select(-q39d, -q40d)
@@ -426,10 +500,10 @@ years<-survey %>%
 41. What is your level of education? (Please choose one)
 
 ```{r}
-edu_col<- c(153:154, 300:307)
+#edu_col<- c(153:154, 300:307)
 
 education_df<-survey %>% 
-  select(start, country, community, survey_id, c(153:154, 300:307)) %>% 
+  select(survey_id, c(153:154, 300:307)) %>% 
   mutate(education = ifelse(is.na(education), q41d, education)) %>% 
   mutate(education_other = ifelse(is.na(education_other), qPlease_specify_other_002, education_other)) %>% 
   select(-starts_with("q"))
@@ -443,6 +517,29 @@ education_df<-survey %>%
 
 ```{r}
 income<-survey %>% 
-  select(start, country, community, survey_id, c(308:312)) 
+  select(survey_id, c(308:312)) 
+```
+
+```{r}
+survey_final<- survey %>%
+  select(start,	end,	survey_type,	survey_id,	survey_version,	interviewer,	country,	community,	sex) %>% 
+  left_join(gear_df) %>% 
+  left_join(vessel_df) %>% 
+  left_join(tech_df) %>%
+  left_join(fishtech_df) %>% 
+  left_join(vms_text_df) %>% 
+  left_join(ce_df) %>% 
+  left_join(vms_goodbad_df) %>% 
+  left_join(vms_design_df) %>% 
+  left_join(targetsp_df) %>% 
+#  left_join(pct_catch) %>% 
+#  left_join(organization) %>% 
+#  left_join(rules) %>% 
+  left_join(problems) %>% 
+  left_join(years) %>% 
+  left_join(income) 
+
+
+names(survey_final)  
 ```
 
