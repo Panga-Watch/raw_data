@@ -265,12 +265,13 @@ fishtech_df<- survey %>%
 
 ```{r}
 vms_text_df<- survey %>% 
-  select(survey_id, c(50:53,197:200)) %>% 
-  mutate(positive_vms1 = ifelse(is.na(positive_tracking_tech_one), positive_one, positive_tracking_tech_one),
-         positive_vms2 = ifelse(is.na(positive_tracking_tech_two), positive_two, positive_tracking_tech_two),
-         negative_vms1 = ifelse(is.na(negative_tracking_tech_one), negative_one, negative_tracking_tech_one),
-         negative_vms2 = negative_two) %>% 
-  select(survey_id, positive_vms1, positive_vms2, negative_vms1, negative_vms2)
+  select(survey_id, tracking_tech, c(50:53,197:200)) %>% 
+  mutate(positive_tracking_tech_one = ifelse(is.na(positive_tracking_tech_one), positive_one, positive_tracking_tech_one),
+         positive_tracking_tech_two = ifelse(is.na(positive_tracking_tech_two), positive_two, positive_tracking_tech_two),
+         negative_tracking_tech_one = ifelse(is.na(negative_tracking_tech_one), negative_one, negative_tracking_tech_one),
+         negative_tracking_tech_two = negative_two) %>%
+  rename(text_vms = tracking_tech) %>% 
+  select(survey_id, text_vms, positive_tracking_tech_one, positive_tracking_tech_two, negative_tracking_tech_one, negative_tracking_tech_two)
 
 
 ```
@@ -368,8 +369,19 @@ d. Export
 e. Other _______________________
 
 ```{r}
-pct_catch<-survey %>% 
-  select(survey_id, c(78:80, 221:223)) 
+pc_names<-c("survey_id", "fraction_personal",	"fraction_neighbor",	"fraction_local_trade",	"fraction_export",	"fraction_other",	"other_fraction")
+
+pc_a<-survey %>% 
+  select(survey_id, fraction_personal:fraction_other) %>% 
+  filter(survey_id < 7000 & survey_id > 4000)
+
+pc_b<-survey %>% 
+  select(survey_id, personal:other_21) %>% 
+  filter(survey_id > 7000 | survey_id < 4000)
+
+colnames(pc_a)<-pc_names
+colnames(pc_b)<-pc_names
+pct_catch<-rbind(pc_a, pc_b)
 ```
 
 22. Are you part of a fishing organization?
@@ -389,12 +401,20 @@ If you selected Yes in Question 22, please answer Question 23-25
 25. How many members are in your fishing organization? 
 
 ```{r}
-organization<-survey %>% 
-  select(survey_id,
-         c(87,230), #part of fish org
-         c(88,89,231,232), #type of org
-         c(90, 233, 234), #role in org
-         c(91, 235)) # number of members 
+org_names<-c("survey_id",	"fishing_organization",	"fishing_org_type",	"other_type",	"fishing_org_role",	"other_role",	"fishing_org_members")
+
+org_a<-survey %>% 
+  select(survey_id,	fishing_organization,	fishing_org_type,	fishing_org_type_other,	fishing_org_role,	other_24,	fishing_org_members) %>%
+  filter(survey_id < 7000 & survey_id > 4000)
+  
+
+org_b<-survey %>% 
+  select(survey_id, q22m,	q23m,	other_23,	q24g,	other_24,	q25g) %>% 
+  filter(survey_id > 7000 | survey_id < 4000)
+
+colnames(org_a)<-org_names
+colnames(org_b)<-org_names
+organization<-rbind(org_a, org_b)
 ```
 
 
@@ -435,15 +455,71 @@ organization<-survey %>%
 31. Are there any closed areas in your fishing area?
 ◯	Yes
 ◯	No
+
+
 ```{r}
-rules<-survey %>% 
-  select(start, country, community, survey_id,
-         c(92,93,236), #access to fishery
-         c(94:102, 237:246), #regulations
-         c(103:111, 247:255), #enforcement body
-         c(112,113,256,257), #enforcement frequency 
-         c(114,258), #punishment
-         c(125, 259),) #mpa 
+rules_a<-survey %>% 
+  select(survey_id,
+         access_target_species:mpa) %>% 
+  filter(survey_id > 4000 & survey_id < 7000) %>% 
+  select(survey_id,
+         access_target_species	,
+        access_target_species_other	,
+        restriction_restriction_gear	,
+        restriction_restriction_size	,
+        restriction_restriction_season	,
+        restriction_restriction_spacial	,
+        restriction_restriction_quota	,
+        restriction_other_restriction	,
+        restriction_restriction_none	,
+        restriction_other	,
+        enforcement_enforcement_community_members	,
+        enforcement_enforcement_village_leader	,
+        enforcement_enforcement_village_gov	,
+        enforcement_enforcement_provincial_gov	,
+        enforcement_enforcement_national_gov	,
+        enforcement_enforcement_none	,
+        enforcement_other_enforcement	,
+        enforcement_other	,
+        enforcement_interval	,
+        enforcement_interval_other	,
+        punishment_severity	,
+        mpa)
+
+rules_b<-survey %>% 
+  select(survey_id,
+         q26g:q31g) %>% 
+  filter(survey_id > 7000 | survey_id < 4000) %>% 
+  mutate(other_access = NA) %>% 
+  select(survey_id, 
+         q26g	,
+         other_access ,
+         q27g_a_Gear_Restrictions	,
+         q27g_b_Size_Restrictions	,
+        q27g_c_Seasonal_Restrictions	,
+        q27g_d_Spatial_Restrictions	,
+        q27g_e_Quotas	,
+        q27g_other	,
+        q27g_none	,
+        other_27	,
+        q28g_community_memb	,
+        q28g_village_custom	,
+        q28g_village_govern	,
+        q28g_provincial_gov	,
+        q28g_national_gover	,
+        q28g_no_enforcement	,
+        q28g_other	,
+        other_28	,
+        q29g	,
+        other_29	,
+        q30g	,
+        q31g)
+
+rule_names <- c("survey_id", "access_target_species",	"other_access",	"restriction_gear",	"restriction_size",	"restriction_season",	"restriction_spacial",	"restriction_quota",	"restriction_other",	"restriction_none",	"other_restriction",	"enforcement_community_members",	"enforcement_village_leader",	"enforcement_village_gov",	"enforcement_provincial_gov",	"enforcement_national_gov",	"enforcement_none",	"enforcement_other",	"other_enforcement",	"enforcement_interval",	"other_interval",	"punishment_severity",	"mpa")
+
+colnames(rules_a)<-rule_names
+colnames(rules_b)<-rule_names
+rules<-rbind(rules_a, rules_b)
 ```
 
 
@@ -476,13 +552,36 @@ problems<-survey %>%
   mutate(fishery_problem_one = ifelse(is.na(problem_one), fishery_problem_one, problem_one),
          fishery_problem_two = ifelse(is.na(problem_two), fishery_problem_two, problem_two),
          fishery_problem_three = ifelse(is.na(problem_three), fishery_problem_three, problem_three)) %>% 
+    mutate(fishery_solution_one = ifelse(is.na(solution_one), fishery_solution_one, solution_one),
+         fishery_solution_two = ifelse(is.na(solution_two), fishery_solution_two, solution_two),
+         fishery_solution_three = ifelse(is.na(solution_three), fishery_solution_three, solution_three)) %>%
   mutate(rank_one = ifelse(is.na(rank_one), q1st_choice_001, rank_one),
          rank_two = ifelse(is.na(rank_two), q2nd_choice, rank_two),
          rank_three = ifelse(is.na(rank_three), q3rd_choice, rank_three),
          rank_four = ifelse(is.na(rank_four), q4th_choice, rank_four)) %>% 
   mutate(catch_trends = ifelse(is.na(catch_trends), catch_trends_35, catch_trends), 
          catch_trends = ifelse(is.na(catch_trends), q35p, catch_trends)) %>% 
-  select(survey_id, starts_with("fishery_problem"), starts_with("rank_"), catch_trends)
+  select(survey_id, starts_with("fishery_problem"), starts_with("fishery_solution"), starts_with("rank_"), catch_trends)
+```
+36
+37
+38
+```{r}
+likert_names<-names(likert_a)
+
+likert_a<-survey %>% 
+  select(survey_id, opinion_a:satisfaction_c) %>% 
+  filter(survey_id < 7000 & survey_id > 4000)
+
+likert_b<-survey %>% 
+  select(survey_id, Formal_stock_assessm_bly_manage_fisheries:other_38) %>% 
+  filter(survey_id > 7000 | survey_id < 4000) %>% 
+  mutate(ngo = ifelse(is.na(ngo), Non_Governmental_Organizations_001, ngo)) %>% 
+  select(-Non_Governmental_Organizations_001, -other_38)
+
+colnames(likert_b)<- likert_names
+
+likert<-rbind(likert_a, likert_b)
 ```
 
 39. What is your age?
@@ -505,8 +604,8 @@ years<-survey %>%
 education_df<-survey %>% 
   select(survey_id, c(153:154, 300:307)) %>% 
   mutate(education = ifelse(is.na(education), q41d, education)) %>% 
-  mutate(education_other = ifelse(is.na(education_other), qPlease_specify_other_002, education_other)) %>% 
-  select(-starts_with("q"))
+  mutate(other_education = ifelse(is.na(education_other), qPlease_specify_other_002, education_other)) %>% 
+  select(survey_id, education, other_education)
 ```
 
 42. What is your average monthly income? (INR/MEX)
@@ -517,7 +616,12 @@ education_df<-survey %>%
 
 ```{r}
 income<-survey %>% 
-  select(survey_id, c(308:312)) 
+  select(survey_id, income:income_percent_expenses, 
+         q42d:                         q44_What_percent_ou_s_related_to_fishing) %>% 
+  mutate(income = ifelse(is.na(income), q42d, income),
+         income_fishing = ifelse(is.na(income_percent_fishing), q43_What_percent_ou_e_comes_from_fishing, income_percent_fishing), income_expenses = ifelse(is.na(income_percent_expenses), q44_What_percent_ou_s_related_to_fishing, income_percent_expenses)) %>% 
+  select(survey_id, income, income_fishing, income_expenses)
+  
 ```
 
 ```{r}
@@ -532,14 +636,21 @@ survey_final<- survey %>%
   left_join(vms_goodbad_df) %>% 
   left_join(vms_design_df) %>% 
   left_join(targetsp_df) %>% 
-#  left_join(pct_catch) %>% 
-#  left_join(organization) %>% 
-#  left_join(rules) %>% 
-  left_join(problems) %>% 
+  left_join(pct_catch) %>% 
+  left_join(organization) %>% 
+  left_join(rules) %>% 
+  left_join(problems) %>%
+  left_join(likert) %>% 
   left_join(years) %>% 
+  left_join(education_df) %>% 
   left_join(income) 
 
+names(survey_final)
+```
 
-names(survey_final)  
+```{r}
+
+
+Any_additional_quest_comments_notes_etc, last_commends
 ```
 
