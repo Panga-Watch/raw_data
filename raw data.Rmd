@@ -21,7 +21,9 @@ raw_df<-read_csv("kobo_response.csv") %>%
 names(raw_df) <- gsub(x = names(raw_df), pattern = "^_", replacement = "q")  
 names(raw_df) <- gsub(x = names(raw_df), pattern = "/", replacement = "_") 
 
-master_id<-read_csv("master_survey_resp_copy.csv") %>% 
+master_df <- read_csv("master_survey_resp_copy.csv")
+
+master_id<- master_df %>% 
   select(start, survey_id, country, community) %>% 
   mutate(new_id = survey_id) %>% 
   select(-survey_id) %>% 
@@ -37,9 +39,53 @@ last_ind<-read_csv("Tracking Tech Survey (IND).csv") %>%
   left_join(master_id) %>% 
   mutate(survey_id = new_id) %>% 
   mutate(community = ifelse(survey_id > 8000, "JPR", "WKB"), 
-         country = "IND")
+         country = "IND") %>% 
+  mutate(interviewer_Org = "GFW",
+         comment = NA,
+         gear_buceo = 0,
+         text_vms = NA,
+         last_comments = last_commends, 
+         choice = choice_001) %>% 
+  select("start",	"end",	"survey_type",	"survey_id",	"survey_version",	"interviewer",	"interviewer_Org",	"country",	"community",	"sex",	"gear/hand_line",	"gear/spear",	"gear/traps",	"gear/gill_net",	"gear/mobile_net",	"gear/stationary_line",	"gear_buceo",	"gear/other_gear",	"gear_other",	"boat_status",	"boat_length_m",	"boat_material",	"boat_motorized",	"boat_power",	"comment",	"tech/smartphone",	"tech/maps",	"tech/socialmedia",	"tech/other_tech",	"tech/no_tech",	"tech_other",	"fish_tech/vhf",	"fish_tech/fishfinder",	"fish_tech/survcam",	"fish_tech/catchapp",	"fish_tech/vesseltrack",	"fish_tech/gps",	"fish_tech/other_fish_tech",	"fish_tech/no_fish_tech",	"fish_tech_other",	"text_vms",	"positive_tracking_tech_one",	"positive_tracking_tech_two",	"negative_tracking_tech_one",	"negative_tracking_tech_two",	"choice",	"package_nopackage",	"wtp_1",	"wtp_2",	"wtp_3",	"wtp_4",	"wtr_1",	"wtr_2",	"wtr_3",	"wtr_4",	"tracking_negative",	"tracking_positive",	"vms_design/vms_design_a",	"vms_design/vms_design_b",	"vms_design/vms_design_c",	"vms_design/vms_design_d",	"vms_design/vms_design_e",	"vms_design/vms_design_f",	"vms_design/vms_design_g",	"vms_design/vms_design_h",	"vms_design/vms_design_i",	"vms_adoption_text",	"target_species_one",	"target_species_two",	"target_species_three",	"fraction_personal",	"fraction_neighbor",	"fraction_local_trade",	"fraction_export",	"other_fraction",	"fraction_other",	"fishing_organization",	"fishing_org_type",	"fishing_org_type_other",	"fishing_org_role",	"fishing_org_role_other",	"fishing_org_members",	"access_target_species",	"access_target_species_other",	"restriction/restriction_gear",	"restriction/restriction_size",	"restriction/restriction_season",	"restriction/restriction_spacial",	"restriction/restriction_quota",	"restriction/other_restriction",	"restriction/restriction_none",	"restriction_other",	"enforcement/enforcement_community_members",	"enforcement/enforcement_village_leader",	"enforcement/enforcement_village_gov",	"enforcement/enforcement_provincial_gov",	"enforcement/enforcement_national_gov",	"enforcement/enforcement_none",	"enforcement/other_enforcement",	"enforcement_other",	"enforcement_interval",	"enforcement_interval_other",	"punishment_severity",	"mpa",	"fishery_problem_one",	"fishery_problem_two",	"fishery_problem_three",	"fishery_solution_one",	"fishery_solution_two",	"fishery_solution_three",	"rank_one",	"rank_two",	"rank_three",	"rank_four",	"catch_trends",	"opinion_a",	"opinion_b",	"opinion_c",	"opinion_d",	"opinion_e",	"opinion_f",	"opinion_g",	"opinion_h",	"opinion_i",	"trust_a",	"trust_b",	"trust_c",	"trust_d",	"trust_e",	"trust_f",	"trust_g",	"trust_h",	"trust_i",	"trust_j",	"trust_k",	"trust_l",	"satisfaction_a",	"satisfaction_b",	"satisfaction_c",	"age",	"years_fishing",	"education",	"education_other",	"income",	"income_percent_fishing",	"income_percent_expenses",	"photo",	"last_comments")
 
-#names(last_ind)
+names(last_ind) <- gsub(x = names(last_ind), pattern = "enforcement/", replacement = "")
+names(last_ind) <- gsub(x = names(last_ind), pattern = "restriction/", replacement = "")
+names(last_ind) <- gsub(x = names(last_ind), pattern = "vms_design/", replacement = "")
+names(last_ind) <- gsub(x = names(last_ind), pattern = "fish_tech/", replacement = "fishtech_")
+names(last_ind) <- gsub(x = names(last_ind), pattern = "/", replacement = "_") 
+names(survey_ind)
+
+survey_ind<-last_ind %>% 
+  rename(interviewer_org	=	interviewer_Org,
+          gear_handline	=	gear_hand_line,
+          gear_spear	=	gear_spear,
+          gear_traps	=	gear_traps,
+          gear_gillnet	=	gear_gill_net,
+          gear_mobilenet	=	gear_mobile_net,
+          gear_statline	=	gear_stationary_line,
+          gear_other	=	gear_buceo,
+          gear_buceo	=	gear_other_gear,
+          other_gear	=	gear_other,
+          boat_length	=	boat_length_m,
+          tech_other	=	tech_other_tech,
+          tech_none	=	tech_no_tech,
+          other_tech	=	tech_other,
+          fishtech_other	=	fishtech_other_fish_tech,
+          fishtech_none	=	fishtech_no_fish_tech,
+          other_fishtech	=	fish_tech_other,
+          fraction_other	=	other_fraction,
+          other_fraction	=	fraction_other,
+          other_type	=	fishing_org_type_other,
+          other_role	=	fishing_org_role_other,
+          other_access	=	access_target_species_other,
+          restriction_other	=	other_restriction,
+          other_restriction	=	restriction_other,
+          enforcement_other	=	other_enforcement,
+          other_enforcement	=	enforcement_other,
+          other_interval = enforcement_interval_other,
+          other_education	=	education_other,
+          income_fishing	=	income_percent_fishing,
+          income_expenses	=	income_percent_expenses)
 ```
 
 Reassigning survey_id
@@ -81,33 +127,7 @@ survey_pre_psc<-raw_df %>%
   subset(select=c(1:5,324:325, 6:323))
 ```
 
-Intro questions 
-"start"
-"end"
-"survey_type"
-"survey_id"
-"survey_date"
-"survey_time"
-"survey_version"
-"interviewer"
-"country"
-"community"
-"sex"
 
-```{r}
-intro<-survey %>% 
-  select("start",
-          "end",
-          "survey_type",
-          "survey_id",
-          "survey_date",
-          "survey_time",
-          "survey_version",
-          "interviewer",
-          "country",
-          "community",
-          "sex")
-```
 
 
 making corrections for PSC data
@@ -160,6 +180,37 @@ survey<-survey_pre_psc %>%
   mutate(survey_id = ifelse(is.na(survey_id) & community == "ALT", 6042, survey_id)) #forgot to assign the last one
 ```
 
+Intro questions 
+"start"
+"end"
+"survey_type"
+"survey_id"
+"survey_date"
+"survey_time"
+"survey_version"
+"interviewer"
+"country"
+"community"
+"sex"
+
+```{r}
+intro_df<- survey %>%
+  mutate(interviewer_org = NA) %>% 
+  select(start,	end,	survey_type,	survey_id,	survey_version,	interviewer, interviewer_org,	country,	community, sex) 
+  
+```
+
+```{r}
+intro_ind<-survey_ind %>% 
+  select(start,	end,	survey_type,	survey_id,	survey_version,	interviewer, interviewer_org,	country,	community, sex) 
+
+intro<-rbind(intro_df, intro_ind)
+```
+
+```{r}
+
+```
+
 4. In the last 12 months, what fishing gear have you used? (Select all that apply)
 ⬜	Hand Line
 ⬜	Spear
@@ -187,6 +238,12 @@ gear_df<-survey %>%
   select(survey_id, gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_other, gear_buceo, other_gear) 
 ```
 
+```{r}
+gear_ind<-survey_ind %>% 
+  select(survey_id, gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_other, gear_buceo, other_gear)
+
+gear<-rbind(gear_df, gear_ind)
+```
 
 5. For fishing purposes, do you own a boat, share a boat, or rent a boat from others, or do not use a boat?
 6. For your primary fishing vessel, please describe the boat in the following aspects:
@@ -195,11 +252,19 @@ gear_df<-survey %>%
 ```{r}
 vessel_df<-survey %>%
   mutate(boat_length = ifelse(is.na(boat_length), boat_length_m, boat_length)) %>% 
-  select(survey_id, contains("boat"), -boat_length_m) %>% 
+  #select(survey_id, contains("boat"), -boat_length_m, Comments) %>% 
   mutate(boat_material =  ifelse(grepl("ka", boat_material, ignore.case=TRUE), "wood",
-                                 ifelse(grepl("fib", boat_material, ignore.case = TRUE), "fiberglass", boat_material)))
+                                 ifelse(grepl("fib", boat_material, ignore.case = TRUE), "fiberglass", boat_material))) %>% 
+  rename(comment = Comments) %>% 
+  select(survey_id, boat_status, boat_material, boat_motorized, boat_power, boat_length, comment)
 ```
 
+```{r}
+vessel_ind<-survey_ind %>% 
+  select(survey_id, boat_status, boat_material, boat_motorized, boat_power, boat_length, comment)
+
+vessel<-rbind(vessel_df, vessel_ind)
+```
 
 
 7. What types of technology that you use at least once a week? (Select all that apply)
@@ -217,10 +282,17 @@ tech_df<- survey %>%
          other_tech = ifelse(is.na(tech_other), other_07, tech_other), 
          tech_smartphone = ifelse(is.na(tech_smartphone), tech_use_smartphone, tech_smartphone),
          tech_maps = ifelse(is.na(tech_maps), tech_use_maps, tech_maps),
-         tech_sm = ifelse(is.na(tech_socialmedia), tech_use_socialmedia, tech_socialmedia),
+         tech_socialmedia = ifelse(is.na(tech_socialmedia), tech_use_socialmedia, tech_socialmedia),
          tech_other = ifelse(is.na(tech_other_tech), tech_use_other, tech_other), 
          tech_none = ifelse(is.na(tech_no_tech), tech_use_none, tech_no_tech)) %>% 
-  select(survey_id, tech_smartphone, tech_maps, tech_sm, tech_other, tech_none, other_tech)
+  select(survey_id, tech_smartphone, tech_maps, tech_socialmedia, tech_other, tech_none, other_tech)
+```
+
+```{r}
+tech_ind <- survey_ind %>% 
+  select(survey_id, tech_smartphone, tech_maps, tech_socialmedia, tech_other, tech_none, other_tech)
+
+tech <- rbind(tech_df, tech_ind)
 ```
 
 8. 8. Which of these  types of technology do  you use/  have used at some point for your fishing activity (Select all that apply)
@@ -243,19 +315,26 @@ fishtech_df<- survey %>%
   mutate(fishtech_none = ifelse(is.na(fish_tech_no_fish_tech), fish_tech_use_none, fish_tech_no_fish_tech)) %>% #none
   mutate(fishtech_vhf = ifelse(is.na(fish_tech_vhf), fish_tech_use_vhf, 
                                ifelse(grepl("Radio", other_fishtech, ignore.case=TRUE), 1, fish_tech_vhf))) %>% #VHF radio
-  mutate(fishtech_fishfiner = ifelse(is.na(fish_tech_fishfinder), fish_tech_use_fishfinder, fish_tech_fishfinder)) %>% #Fish Finder
+  mutate(fishtech_fishfinder = ifelse(is.na(fish_tech_fishfinder), fish_tech_use_fishfinder, fish_tech_fishfinder)) %>% #Fish Finder
   mutate(fishtech_survcam = ifelse(is.na(fish_tech_survcam), fish_tech_use_survcam, fish_tech_survcam)) %>% #Surveillance camera
   mutate(fishtech_catchapp = ifelse(is.na(fish_tech_catchapp), fish_tech_use_catchapp, fish_tech_catchapp)) %>% #Catch and data collection app
-  mutate(fishtech_vms = ifelse(is.na(fish_tech_vesseltrack), fish_tech_use_vesseltrack, 
+  mutate(fishtech_vesseltrack = ifelse(is.na(fish_tech_vesseltrack), fish_tech_use_vesseltrack, 
                                ifelse(grepl("pds", other_fishtech, ignore.case=TRUE), 1, fish_tech_vesseltrack))) %>% #vessel tracking technology
   mutate(fishtech_gps = ifelse(grepl("GPS", other_fishtech, ignore.case=TRUE), 1, 
                                ifelse(fishtech_none == 1, 0, fish_tech_gps))) %>% #GPS 
   mutate(fishtech_other = ifelse(is.na(fish_tech_other_fish_tech), fish_tech_use_other, fish_tech_other_fish_tech)) %>% #Other binary
 
-  select(survey_id, fishtech_vhf, fishtech_fishfiner, fishtech_survcam, fishtech_catchapp, fishtech_gps, fishtech_vms, fishtech_other,fishtech_none, other_fishtech) %>%
+  select(survey_id, fishtech_vhf, fishtech_fishfinder, fishtech_survcam, fishtech_catchapp, fishtech_gps, fishtech_vesseltrack, fishtech_other,fishtech_none, other_fishtech) %>%
   mutate(row_sum = apply(is.na(.), 1, sum)) %>% 
   mutate_if(is.numeric, funs(ifelse(is.na(.) & row_sum <9 , 0, .))) %>% 
   select(-row_sum)
+```
+
+```{r}
+fishtech_ind <- survey_ind %>% 
+  select(survey_id, fishtech_vhf, fishtech_fishfinder, fishtech_survcam, fishtech_catchapp, fishtech_gps, fishtech_vesseltrack, fishtech_other,fishtech_none, other_fishtech)
+
+fishtech <- rbind(fishtech_df, fishtech_ind)
 ```
 
 9. What type of tracking technology did you use on your vessel?
@@ -272,8 +351,13 @@ vms_text_df<- survey %>%
          negative_tracking_tech_two = negative_two) %>%
   rename(text_vms = tracking_tech) %>% 
   select(survey_id, text_vms, positive_tracking_tech_one, positive_tracking_tech_two, negative_tracking_tech_one, negative_tracking_tech_two)
+```
 
+```{r}
+vms_text_ind<-survey_ind %>% 
+  select(survey_id, text_vms, positive_tracking_tech_one, positive_tracking_tech_two, negative_tracking_tech_one, negative_tracking_tech_two)
 
+vms_text<- rbind(vms_text_df, vms_text_ind)
 ```
 
 12. You have to install and use one or the other tracking package for a year. Which would you be more likely to install and use consistently on every fishing trip?
@@ -291,6 +375,15 @@ ce_df<- survey %>%
   select(survey_id, c(54:64)) %>% 
   mutate(choice = ifelse(is.na(choice), choice_001, choice)) %>% 
   select(-choice_001)
+
+names(ce_df)
+```
+
+```{r}
+ce_ind<-survey_ind %>% 
+  select(survey_id, choice, package_nopackage, wtp_1, wtp_2, wtp_3, wtp_4, wtr_1, wtr_2, wtr_3, wtr_4)
+
+ce<-rbind(ce_df, ce_ind)
 ```
 
 16. Please mention any negatives that this technology might bring to you.
@@ -300,9 +393,15 @@ ce_df<- survey %>%
 19. Do you think you and your community would adopt this technology? Why or Why Not?
 ```{r}
 vms_goodbad_df<- survey %>% 
-  select(survey_id, c(65:66, 77, 220)) %>% 
   mutate(vms_adoption_text = ifelse(is.na(vms_adoption_text), tracking_adoption, vms_adoption_text)) %>% 
-  select(-tracking_adoption)
+  select(survey_id, tracking_positive, tracking_negative, vms_adoption_text)
+```
+
+```{r}
+vms_goodbad_ind<- survey_ind %>% 
+  select(survey_id, tracking_positive, tracking_negative, vms_adoption_text)
+
+vms_goodbad<-rbind(vms_goodbad_df, vms_goodbad_ind)
 ```
 
 18. Please choose 3 benefits you want from the tracking device, if it is installed in your boat. (Select three)
@@ -347,6 +446,13 @@ vms_design_df <- ce_followup_df %>%
   select(survey_id, vms_design_a:vms_design_i)
 ```
 
+```{r}
+vms_design_ind <-survey_ind %>% 
+  select(survey_id, vms_design_a:vms_design_i)
+
+vms_design<- rbind(vms_design_df, vms_design_ind)
+```
+
 
 20. Combining all seasons, what are your top three targeted fisheries?
 1.
@@ -359,6 +465,13 @@ targetsp_df<-survey %>%
          target_species_two = ifelse(is.na(targettwo), target_species_two, targettwo),
          target_species_three = ifelse(is.na(targetthree), target_species_three, targetthree)) %>% 
   select(survey_id, target_species_one, target_species_two, target_species_three)
+```
+
+```{r}
+targetsp_ind <-survey_ind %>% 
+  select(survey_id, target_species_one, target_species_two, target_species_three)
+
+targetsp<- rbind(targetsp_df, targetsp_ind)
 ```
 
 21. What percent of the total catch (out of 100%) goes to...
@@ -381,7 +494,14 @@ pc_b<-survey %>%
 
 colnames(pc_a)<-pc_names
 colnames(pc_b)<-pc_names
-pct_catch<-rbind(pc_a, pc_b)
+pct_catch_df<-rbind(pc_a, pc_b)
+```
+
+```{r}
+pct_catch_ind<- survey_ind %>% 
+  select("survey_id", "fraction_personal",	"fraction_neighbor",	"fraction_local_trade",	"fraction_export",	"fraction_other",	"other_fraction")
+
+pct_catch<-rbind(pct_catch_df, pct_catch_ind)
 ```
 
 22. Are you part of a fishing organization?
@@ -414,7 +534,14 @@ org_b<-survey %>%
 
 colnames(org_a)<-org_names
 colnames(org_b)<-org_names
-organization<-rbind(org_a, org_b)
+organization_df<-rbind(org_a, org_b)
+```
+
+```{r}
+organization_ind<-survey_ind %>% 
+  select("survey_id",	"fishing_organization",	"fishing_org_type",	"other_type",	"fishing_org_role",	"other_role",	"fishing_org_members")
+
+organization<-rbind(organization_df, organization_ind)
 ```
 
 
@@ -519,7 +646,14 @@ rule_names <- c("survey_id", "access_target_species",	"other_access",	"restricti
 
 colnames(rules_a)<-rule_names
 colnames(rules_b)<-rule_names
-rules<-rbind(rules_a, rules_b)
+rules_df<-rbind(rules_a, rules_b)
+```
+
+```{r}
+rules_ind<-survey_ind %>% 
+  select("survey_id", "access_target_species",	"other_access",	"restriction_gear",	"restriction_size",	"restriction_season",	"restriction_spacial",	"restriction_quota",	"restriction_other",	"restriction_none",	"other_restriction",	"enforcement_community_members",	"enforcement_village_leader",	"enforcement_village_gov",	"enforcement_provincial_gov",	"enforcement_national_gov",	"enforcement_none",	"enforcement_other",	"other_enforcement",	"enforcement_interval",	"other_interval",	"punishment_severity",	"mpa")
+
+rules<-rbind(rules_df, rules_ind)
 ```
 
 
@@ -544,7 +678,7 @@ rules<-rbind(rules_a, rules_b)
 ◯	e. Improved a lot		
 
 ```{r}
-problems<-survey %>% 
+problems_df<-survey %>% 
   select(survey_id, 
          c(116:121, 260:265), #problem & Solution 
          c(122:125, 266:269), #rank
@@ -563,15 +697,23 @@ problems<-survey %>%
          catch_trends = ifelse(is.na(catch_trends), q35p, catch_trends)) %>% 
   select(survey_id, starts_with("fishery_problem"), starts_with("fishery_solution"), starts_with("rank_"), catch_trends)
 ```
+
+```{r}
+problems_ind <- survey_ind %>% 
+  select(survey_id, starts_with("fishery_problem"), starts_with("fishery_solution"), starts_with("rank_"), catch_trends)
+
+problems<-rbind(problems_df, problems_ind)
+```
+
 36
 37
 38
 ```{r}
-likert_names<-names(likert_a)
-
 likert_a<-survey %>% 
   select(survey_id, opinion_a:satisfaction_c) %>% 
   filter(survey_id < 7000 & survey_id > 4000)
+
+likert_names<-names(likert_a)
 
 likert_b<-survey %>% 
   select(survey_id, Formal_stock_assessm_bly_manage_fisheries:other_38) %>% 
@@ -581,7 +723,14 @@ likert_b<-survey %>%
 
 colnames(likert_b)<- likert_names
 
-likert<-rbind(likert_a, likert_b)
+likert_df<-rbind(likert_a, likert_b)
+```
+
+```{r}
+likert_ind<-survey_ind %>% 
+select(survey_id, opinion_a:satisfaction_c)
+
+likert<-rbind(likert_df, likert_ind)
 ```
 
 39. What is your age?
@@ -589,11 +738,18 @@ likert<-rbind(likert_a, likert_b)
 40. How many years have you been fishing?
 
 ```{r}
-years<-survey %>% 
+years_df<-survey %>% 
   select(survey_id, c(151, 298, 152, 299)) %>% 
   mutate(age = ifelse(is.na(age), q39d, age),
          years_fishing = ifelse(is.na(years_fishing), q40d, years_fishing)) %>% 
   select(-q39d, -q40d)
+```
+
+```{r}
+years_ind<-survey_ind %>% 
+  select(survey_id, age, years_fishing)
+
+years<- rbind(years_df, years_ind)
 ```
 
 41. What is your level of education? (Please choose one)
@@ -608,6 +764,13 @@ education_df<-survey %>%
   select(survey_id, education, other_education)
 ```
 
+```{r}
+education_ind<-survey_ind %>% 
+  select(survey_id, education, other_education)
+
+education<-rbind(education_df, education_ind)
+```
+
 42. What is your average monthly income? (INR/MEX)
 
 43. What percent (out of 100%) of your annual income comes from fishing?
@@ -615,42 +778,63 @@ education_df<-survey %>%
 44. What percent (out of 100%) of your income is spent on fishing related expenses?
 
 ```{r}
-income<-survey %>% 
+income_df<-survey %>% 
   select(survey_id, income:income_percent_expenses, 
          q42d:                         q44_What_percent_ou_s_related_to_fishing) %>% 
   mutate(income = ifelse(is.na(income), q42d, income),
          income_fishing = ifelse(is.na(income_percent_fishing), q43_What_percent_ou_e_comes_from_fishing, income_percent_fishing), income_expenses = ifelse(is.na(income_percent_expenses), q44_What_percent_ou_s_related_to_fishing, income_percent_expenses)) %>% 
   select(survey_id, income, income_fishing, income_expenses)
-  
+```
+
+
+```{r}
+income_ind<-survey_ind %>% 
+  select(survey_id, income, income_fishing, income_expenses)
+
+income<-rbind(income_df, income_ind)
+```
+
+Last questions of the survey
+
+```{r}
+end_df<-survey %>% 
+  mutate(photo = ifelse(is.na(photo), Photo_of_the_Fishing_er_relevant_material, photo),
+         last_comments = ifelse(is.na(last_commends), Any_additional_quest_comments_notes_etc, last_commends)) %>% 
+  select(survey_id, photo, last_comments)
+
 ```
 
 ```{r}
-survey_final<- survey %>%
-  select(start,	end,	survey_type,	survey_id,	survey_version,	interviewer,	country,	community,	sex) %>% 
-  left_join(gear_df) %>% 
-  left_join(vessel_df) %>% 
-  left_join(tech_df) %>%
-  left_join(fishtech_df) %>% 
-  left_join(vms_text_df) %>% 
-  left_join(ce_df) %>% 
-  left_join(vms_goodbad_df) %>% 
-  left_join(vms_design_df) %>% 
-  left_join(targetsp_df) %>% 
+end_ind<-survey_ind %>% 
+  select(survey_id, photo, last_comments)
+
+end<-rbind(end_df, end_ind)
+```
+
+Combining all of the pieces to make the finalized survey
+
+```{r}
+survey_final<-intro %>%
+  left_join(gear) %>% 
+  left_join(vessel) %>% 
+  left_join(tech) %>%
+  left_join(fishtech) %>% 
+  left_join(vms_text) %>% 
+  left_join(ce) %>% 
+  left_join(vms_goodbad) %>% 
+  left_join(vms_design) %>% 
+  left_join(targetsp) %>% 
   left_join(pct_catch) %>% 
   left_join(organization) %>% 
   left_join(rules) %>% 
   left_join(problems) %>%
   left_join(likert) %>% 
   left_join(years) %>% 
-  left_join(education_df) %>% 
-  left_join(income) 
-
-names(survey_final)
+  left_join(education) %>% 
+  left_join(income) %>% 
+  left_join(end) 
 ```
-
 ```{r}
-
-
-Any_additional_quest_comments_notes_etc, last_commends
+write.csv(survey_final,"survey_final.csv", row.names = FALSE)
 ```
 
