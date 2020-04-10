@@ -1,0 +1,20 @@
+---
+title: "Data Cleaning"
+author: "BR"
+date: "26/02/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r}
+df<-read_csv("survey_final.csv")
+
+master<-read_csv("master_survey_resp_copy.csv")
+```
+
+
+

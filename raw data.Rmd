@@ -53,7 +53,6 @@ names(last_ind) <- gsub(x = names(last_ind), pattern = "restriction/", replaceme
 names(last_ind) <- gsub(x = names(last_ind), pattern = "vms_design/", replacement = "")
 names(last_ind) <- gsub(x = names(last_ind), pattern = "fish_tech/", replacement = "fishtech_")
 names(last_ind) <- gsub(x = names(last_ind), pattern = "/", replacement = "_") 
-names(survey_ind)
 
 survey_ind<-last_ind %>% 
   rename(interviewer_org	=	interviewer_Org,
@@ -195,16 +194,20 @@ Intro questions
 
 ```{r}
 intro_df<- survey %>%
-  mutate(interviewer_org = NA) %>% 
-  select(start,	end,	survey_type,	survey_id,	survey_version,	interviewer, interviewer_org,	country,	community, sex) 
-  
+  select(start,	end,	survey_type,	survey_id,	survey_version,	country,	community, sex) 
 ```
 
 ```{r}
 intro_ind<-survey_ind %>% 
-  select(start,	end,	survey_type,	survey_id,	survey_version,	interviewer, interviewer_org,	country,	community, sex) 
+  select(start,	end,	survey_type,	survey_id,	survey_version,	country,	community, sex) 
 
-intro<-rbind(intro_df, intro_ind)
+interview<-master_df %>% 
+  select(survey_id, interviewer, interviewer_Org)
+
+intro<-rbind(intro_df, intro_ind) %>% 
+  left_join(interview)
+
+
 ```
 
 ```{r}
@@ -376,7 +379,6 @@ ce_df<- survey %>%
   mutate(choice = ifelse(is.na(choice), choice_001, choice)) %>% 
   select(-choice_001)
 
-names(ce_df)
 ```
 
 ```{r}
