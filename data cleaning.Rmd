@@ -16,5 +16,39 @@ df<-read_csv("survey_final.csv")
 master<-read_csv("master_survey_resp_copy.csv")
 ```
 
+```{r}
+gear_na<-df %>% 
+  select(survey_id, community, country, gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_other, gear_buceo, other_gear)
 
+unique(gear_na$other_gear)
+```
+
+
+```{r}
+#data formatting 
+
+unique(df_wtp$wtp)
+
+pack_yes <- df %>% 
+  filter(package_nopackage == "package_chosen") %>% 
+  mutate(wtp = ifelse(wtp_4 == "yes", 4,
+                      ifelse(wtp_4 == "no", 3,
+                             ifelse(wtp_3 =="no", 2,
+                                    ifelse(wtp_2 == "no", 1, 0)))))
+
+pack_no <- df %>% 
+  filter(package_nopackage == "no_package") %>% 
+  mutate(wtp = ifelse(wtr_4 == "yes", -4,
+                      ifelse(wtr_4 == "no", -5,
+                             ifelse(wtr_3 =="yes", -3,
+                                    ifelse(wtr_2 =="yes", -2, -1))))) 
+
+
+df_wtp <- rbind(pack_no,pack_yes)
+
+df_wtp %>% 
+  group_by(community) %>% 
+  count(wtp)
+
+```
 

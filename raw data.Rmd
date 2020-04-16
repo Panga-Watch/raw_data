@@ -221,6 +221,7 @@ intro<-rbind(intro_df, intro_ind) %>%
 ⬜	Gill Net
 ⬜	Mobile Net (e.g., trawl, purse seine, beach seine)
 ⬜	Stationary Line (e.g. long line)
+Buceo - Added
 ⬜	Other  ___________________________
 
 *Adding Buceo
@@ -238,12 +239,12 @@ gear_df<-survey %>%
          gear_other = ifelse(is.na(gear_other_gear), fishing_gear_other, gear_other_gear)) %>%
   mutate(gear_buceo = ifelse(grepl("buceo", other_gear, ignore.case=TRUE), 1, 0)) %>% 
   mutate(gear_gillnet = ifelse(grepl("gillnet", other_gear, ignore.case = TRUE), 1 , gear_gillnet)) %>% 
-  select(survey_id, gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_other, gear_buceo, other_gear) 
+  select(survey_id, gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_buceo, gear_other,  other_gear) 
 ```
 
 ```{r}
 gear_ind<-survey_ind %>% 
-  select(survey_id, gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_other, gear_buceo, other_gear)
+  select(survey_id, gear_handline, gear_spear, gear_traps, gear_gillnet, gear_mobilenet, gear_statline, gear_buceo, gear_other, other_gear)
 
 gear<-rbind(gear_df, gear_ind)
 ```
