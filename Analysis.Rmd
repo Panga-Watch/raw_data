@@ -1,0 +1,21 @@
+---
+title: "DATA ANALYSIS"
+author: "BR"
+date: "18/04/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+THIS IS MODEL DIAGNOSIS problem, there are many way to do it, according your statement I think the following will be easy for you. Assume the dependent variable is continuous
+1.       Check the type of 100 factors, if some have a lot of missing value or typo, correct them or let them out. Then for continuous check the person correlation coefficients, for category factor check independency of any two, if Pearson correlation near 1 or -1 among two, one should be gone in multiple regression, if most count appear in the diagonal of the contingence table, one of the two category variables should be gone.
+2.       Draw the scatter plots with continuous outcome to see the association, is linear trend is shown, the factor is in, if non-linear effect is shown, transformation is needed, if no trend, like random, the independent factor could be out.
+3.       If the dependent variable is related to time, check the auto correlation. Suppose the dependent variable should be independent, if not go to time series modeling say Autoreg.
+4.       Do PCA analysis to see if there are still multicolinearity among the independent factors, if some eigen-value is near zero, you may drop one of them, or define a new factor (transformation)
+5.       Do multiple regression, if the sample size is large enough, you may use auto select option, such as forward backward or best, which will select independent factors for you.
+6.       Check outliers by leverage or CooksD or Residual, if exists you may delete them or talk to your advisor
+7.       Check normality,    if violated, do transformation, variance homogeneity exist: transformation on some independent factor, variance homogeneity doesn’t exist: transformation on dependent factor. Those may improve your model fitting.
+8.       You may use Akaike’s information criterion or Bayesian information criterion or Mallows’ CP to decide how many factors should be in. Uisng them is better than compare R2
+Hope it help

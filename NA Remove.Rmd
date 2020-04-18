@@ -1,0 +1,34 @@
+---
+title: "NA FIX"
+author: "BR"
+date: "09/04/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Must run entire script for raw data. rmd
+```{r}
+unique(survey_final$sex)
+```
+
+4. In the last 12 months, what fishing gear have you used? (Select all that apply)
+```{r}
+
+gear_na<-survey_final %>%
+  select(survey_id:other_gear) %>% 
+  mutate(gear_handline = ifelse(grepl("pancing", other_gear, ignore.case=TRUE), 1, gear_handline)) %>% 
+  mutate(gear_mobilenet = ifelse(grepl("purse", other_gear, ignore.case=TRUE), 1, 
+                                 ifelse(grepl("payang", other_gear, ignore.case=TRUE), 1, 
+                                        ifelse(grepl("payang", other_gear, ignore.case = TRUE), 1 , gear_mobilenet)))) %>% 
+  mutate(gear_traps = ifelse(grepl("jaring rajungan", other_gear, ignore.case = TRUE),1, gear_traps)) %>% 
+  mutate(gear_gillnet = ifelse(grepl("rampus", other_gear, ignore.case = TRUE), 1 ,  
+                               ifelse(grepl("Jaring udang", other_gear, ignore.case = TRUE),1, gear_gillnet))) %>% 
+  mutate(gear_other = ifelse(grepl("angkat", other_gear, ignore.case = TRUE),1, gear_other)) %>% 
+  mutate(na_count = 0)
+
+gear_na$na_count <- apply(gear_na, 1, function(x) sum(is.na(x)))
+```
+
